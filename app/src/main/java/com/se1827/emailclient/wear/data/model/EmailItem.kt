@@ -1,4 +1,4 @@
-package com.emailagent.wear.data.model
+package com.se1827.emailclient.wear.data.model
 
 data class EmailItem(
     val id: String,

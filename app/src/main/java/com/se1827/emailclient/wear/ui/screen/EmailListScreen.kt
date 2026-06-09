@@ -1,4 +1,4 @@
-package com.emailagent.wear.ui.screen
+package com.se1827.emailclient.wear.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,9 +40,9 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
-import com.emailagent.wear.ui.components.EmailCard
-import com.emailagent.wear.viewmodel.EmailUiState
-import com.emailagent.wear.viewmodel.EmailViewModel
+import com.se1827.emailclient.wear.ui.components.EmailCard
+import com.se1827.emailclient.wear.viewmodel.EmailUiState
+import com.se1827.emailclient.wear.viewmodel.EmailViewModel
 import kotlinx.coroutines.delay
 
 private const val LABEL_CHECKING_DRAFTS = "Checking drafts…"

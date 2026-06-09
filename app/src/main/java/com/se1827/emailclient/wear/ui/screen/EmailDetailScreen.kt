@@ -1,4 +1,4 @@
-package com.emailagent.wear.ui.screen
+package com.se1827.emailclient.wear.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +28,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
-import com.emailagent.wear.data.model.EmailItem
+import com.se1827.emailclient.wear.data.model.EmailItem
 
 private const val LABEL_SEND = "✓ Send"
 private const val LABEL_SKIP = "✗ Skip"

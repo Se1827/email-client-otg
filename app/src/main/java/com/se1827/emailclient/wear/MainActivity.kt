@@ -1,4 +1,4 @@
-package com.emailagent.wear
+package com.se1827.emailclient.wear
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,10 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
-import com.emailagent.wear.ui.screen.EmailDetailScreen
-import com.emailagent.wear.ui.screen.EmailListScreen
-import com.emailagent.wear.ui.theme.EmailAgentWearTheme
-import com.emailagent.wear.viewmodel.EmailViewModel
+import com.se1827.emailclient.wear.ui.screen.EmailDetailScreen
+import com.se1827.emailclient.wear.ui.screen.EmailListScreen
+import com.se1827.emailclient.wear.ui.theme.EmailAgentWearTheme
+import com.se1827.emailclient.wear.viewmodel.EmailViewModel
 
 private const val ROUTE_LIST = "list"
 private const val ROUTE_DETAIL = "detail/{emailId}"

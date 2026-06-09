@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.emailagent.wear"
+    namespace = "com.se1827.emailclient.wear"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.emailagent.wear"
+        applicationId = "com.se1827.emailclient.wear"
         minSdk = 30
         targetSdk = 34
         versionCode = 1

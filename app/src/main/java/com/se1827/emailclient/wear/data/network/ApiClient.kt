@@ -1,4 +1,4 @@
-package com.emailagent.wear.data.network
+package com.se1827.emailclient.wear.data.network
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
