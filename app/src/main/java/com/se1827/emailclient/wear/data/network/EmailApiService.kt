@@ -1,4 +1,4 @@
-package com.emailagent.wear.data.network
+package com.se1827.emailclient.wear.data.network
 
 import retrofit2.Response
 import retrofit2.http.GET

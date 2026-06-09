@@ -1,10 +1,10 @@
-package com.emailagent.wear.viewmodel
+package com.se1827.emailclient.wear.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.emailagent.wear.data.model.EmailItem
-import com.emailagent.wear.data.network.ApiClient
-import com.emailagent.wear.data.network.EmailResponse
+import com.se1827.emailclient.wear.data.model.EmailItem
+import com.se1827.emailclient.wear.data.network.ApiClient
+import com.se1827.emailclient.wear.data.network.EmailResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
