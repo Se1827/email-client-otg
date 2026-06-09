@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace = "com.se1827.emailclient"
+    namespace = "com.se1827.emailclient.wear"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.se1827.emailclient"
-        minSdk = 26
+        applicationId = "com.se1827.emailclient.wear"
+        minSdk = 30
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -39,7 +39,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-
     buildFeatures {
         compose = true
     }
@@ -47,25 +46,16 @@ android {
 
 dependencies {
     implementation(platform(libs.compose.bom))
-
+    implementation(libs.wear.compose.material)
+    implementation(libs.wear.compose.foundation)
+    implementation(libs.wear.compose.navigation)
     implementation(libs.ui)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
     implementation(libs.activity.compose)
-    implementation(libs.compose.material3)
-    implementation(libs.compose.material.icons.extended)
-
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.ktx)
-
     implementation(libs.kotlinx.coroutines.android)
-
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
-
     implementation(libs.core.splashscreen)
-
     debugImplementation(libs.ui.tooling)
 }

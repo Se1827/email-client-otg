@@ -19,7 +19,6 @@ private const val ROUTE_DETAIL = "detail/{emailId}"
 private const val ARG_EMAIL_ID = "emailId"
 
 class MainActivity : ComponentActivity() {
-
     private val viewModel: EmailViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,9 +44,7 @@ private fun WearNavHost(viewModel: EmailViewModel) {
         composable(ROUTE_LIST) {
             EmailListScreen(
                 viewModel = viewModel,
-                onEmailClick = { emailId ->
-                    navController.navigate("detail/$emailId")
-                }
+                onEmailClick = { emailId -> navController.navigate("detail/$emailId") }
             )
         }
 

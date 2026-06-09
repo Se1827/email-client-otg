@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "EmailAgentWear"
 include(":app")
+include(":wear")
