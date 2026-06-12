@@ -43,10 +43,20 @@ android {
     buildFeatures {
         compose = true
     }
+    useLibrary("wear-sdk")
 }
 
 dependencies {
     implementation(platform(libs.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.protolayout)
+    implementation(libs.androidx.protolayout.material3)
+    implementation(libs.androidx.tiles)
+    implementation(libs.androidx.tiles.tooling.preview)
+    implementation(libs.androidx.watchface.complications.data.source.ktx)
+    implementation(libs.guava)
+    implementation(libs.play.services.wearable)
 
     implementation(libs.ui)
     implementation(libs.ui.graphics)
@@ -66,6 +76,13 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
 
     implementation(libs.core.splashscreen)
+    implementation(libs.wear.compose.foundation)
+    implementation(libs.wear.tooling.preview)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.ui.test.junit4)
+    debugImplementation(libs.androidx.tiles.renderer)
+    debugImplementation(libs.androidx.tiles.tooling)
+    debugImplementation(libs.ui.test.manifest)
 
     debugImplementation(libs.ui.tooling)
 }
