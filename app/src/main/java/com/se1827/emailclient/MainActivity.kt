@@ -102,7 +102,8 @@ class MainActivity : ComponentActivity() {
 private enum class AppTab(val label: String, val icon: ImageVector) {
     Dashboard("Dashboard", Icons.Filled.Dashboard),
     Triage("Triage", Icons.Filled.Inbox),
-    Alerts("Alerts", Icons.Filled.Notifications)
+    Alerts("Alerts", Icons.Filled.Notifications),
+    SmartCards("Cards", Icons.Filled.AutoAwesome)
 }
 
 private data class DashboardStats(
@@ -163,6 +164,7 @@ private fun EmailAgentApp() {
                     AppTab.Dashboard -> "On-the-Go"
                     AppTab.Triage -> "AI Triage"
                     AppTab.Alerts -> "Alerts"
+                    AppTab.SmartCards -> "Smart Cards"
                 },
                 subtitle = "Email Agent",
                 unreadCount = stats.unread
@@ -210,6 +212,7 @@ private fun EmailAgentApp() {
                 AppTab.Dashboard -> DashboardScreen(stats, alerts, emails)
                 AppTab.Triage -> TriageScreen(emails)
                 AppTab.Alerts -> AlertsScreen(alerts)
+                AppTab.SmartCards -> SmartCardsScreen()
             }
         }
     }
