@@ -867,7 +867,7 @@ fun SmartCard(email: SmartCardEmail, onNavigate: (emailId: String) -> Unit) {
  * Starts with [mockSmartCards]. Cards can be dismissed individually.
  */
 @Composable
-fun SmartCardsScreen() {
+fun SmartCardsScreen(smartCards: List<SmartCardEmail>) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -892,7 +892,7 @@ fun SmartCardsScreen() {
                     )
                 }
             }
-            items(mockSmartCards, key = { it.id }) { email ->
+            items(smartCards, key = { it.id }) { email ->
                 SmartCard(
                     email = email,
                     onNavigate = { emailId ->
@@ -974,7 +974,7 @@ val mockSmartCards: List<SmartCardEmail> = listOf(
     backgroundColor = 0xFF0A0B14, widthDp = 390)
 @Composable
 private fun SmartCardsScreenPreview() {
-    EmailClientTheme(darkTheme = true, dynamicColor = false) { SmartCardsScreen() }
+    EmailClientTheme(darkTheme = true, dynamicColor = false) { SmartCardsScreen(mockSmartCards) }
 }
 
 @Preview(name = "Card — Flight", showBackground = true, backgroundColor = 0xFF0A0B14)

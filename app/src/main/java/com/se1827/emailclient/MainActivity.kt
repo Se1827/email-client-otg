@@ -69,6 +69,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -78,6 +81,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Edit
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.se1827.emailclient.ui.EmailDetailScreen
+import com.se1827.emailclient.ui.ComposeScreen
+import com.se1827.emailclient.ui.CalendarScreen
+import com.se1827.emailclient.ui.AccountsScreen
+import com.se1827.emailclient.ui.SettingsScreen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,23 +115,25 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class AppTab(val label: String, val icon: ImageVector) {
-    Dashboard("Dashboard", Icons.Filled.Dashboard),
-    Triage("Triage", Icons.Filled.Inbox),
-    Alerts("Alerts", Icons.Filled.Notifications),
-    SmartCards("Cards", Icons.Filled.AutoAwesome)
+enum class AppTab(val route: String, val label: String, val icon: ImageVector) {
+    Dashboard("dashboard", "Dashboard", Icons.Filled.Dashboard),
+    Triage("triage", "AI Triage", Icons.Filled.Inbox),
+    Alerts("alerts", "Alerts", Icons.Filled.Notifications),
+    SmartCards("cards", "Cards", Icons.Filled.AutoAwesome),
+    Settings("settings", "Settings", Icons.Filled.Settings)
 }
 
-private data class DashboardStats(
+data class DashboardStats(
     val totalEmails: Int,
     val unread: Int,
     val classified: Int,
     val starred: Int,
     val pendingDrafts: Int,
-    val responseReadiness: Float
+    val responseReadiness: Float,
+    val criticalCount: Int
 )
 
-private data class AgentAlert(
+data class AgentAlert(
     val id: String,
     val title: String,
     val message: String,
@@ -123,10 +141,10 @@ private data class AgentAlert(
     val time: String
 )
 
-private enum class AlertSeverity { Critical, Warning, Info }
-private enum class Priority { Critical, High, Normal, Low }
+enum class AlertSeverity { Critical, Warning, Info }
+enum class Priority { Critical, High, Normal, Low }
 
-private data class EmailUi(
+data class EmailUi(
     val id: String,
     val sender: String,
     val subject: String,
@@ -140,79 +158,140 @@ private data class EmailUi(
 )
 
 @Composable
-private fun EmailAgentApp() {
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Dashboard) }
-    val emails = remember { mutableStateListOf<EmailUi>().apply { addAll(sampleEmails) } }
-    val alerts = remember { mutableStateListOf<AgentAlert>().apply { addAll(sampleAlerts) } }
-    val stats = remember(emails.size, alerts.size) {
-        DashboardStats(
-            totalEmails = emails.size,
-            unread = emails.count { it.isUnread },
-            classified = emails.size,
-            starred = emails.count { it.isStarred },
-            pendingDrafts = emails.count { it.hasDraft },
-            responseReadiness = emails.count { it.hasDraft || it.priority == Priority.Low } / emails.size.toFloat()
-        )
-    }
+private fun EmailAgentApp(viewModel: MainViewModel = viewModel()) {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: AppTab.Dashboard.route
+    
+    val dashboardState by viewModel.dashboardStats.collectAsStateWithLifecycle()
+    val emailsState by viewModel.emails.collectAsStateWithLifecycle()
+    val alertsState by viewModel.alerts.collectAsStateWithLifecycle()
+    val smartCardsState by viewModel.smartCards.collectAsStateWithLifecycle()
+
+    val stats = (dashboardState as? UiState.Success)?.data ?: DashboardStats(0, 0, 0, 0, 0, 0f, 0)
+    val emails = (emailsState as? UiState.Success)?.data ?: emptyList()
+    val alerts = (alertsState as? UiState.Success)?.data ?: emptyList()
+    val smartCards = (smartCardsState as? UiState.Success)?.data ?: emptyList()
+
+    val currentTab = AppTab.entries.find { it.route == currentRoute }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            AppTopBar(
-                title = when (selectedTab) {
-                    AppTab.Dashboard -> "On-the-Go"
-                    AppTab.Triage -> "AI Triage"
-                    AppTab.Alerts -> "Alerts"
-                    AppTab.SmartCards -> "Smart Cards"
-                },
-                subtitle = "Email Agent",
-                unreadCount = stats.unread
-            )
+            if (currentTab != null) {
+                AppTopBar(
+                    title = currentTab.label,
+                    subtitle = "Email Agent",
+                    unreadCount = stats.unread
+                )
+            }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { selectedTab = AppTab.Triage },
-                icon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                text = { Text("Refresh inbox") },
-                shape = RoundedCornerShape(28.dp)
-            )
+            if (currentRoute == AppTab.Dashboard.route || currentRoute == AppTab.Triage.route) {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("compose") },
+                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    text = { Text("Compose") },
+                    shape = RoundedCornerShape(28.dp)
+                )
+            }
         },
         bottomBar = {
-            NavigationBar(modifier = Modifier.navigationBarsPadding()) {
-                AppTab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        icon = {
-                            Box {
-                                Icon(tab.icon, contentDescription = null)
-                                if (tab == AppTab.Alerts && alerts.isNotEmpty()) {
-                                    Badge(modifier = Modifier.align(Alignment.TopEnd)) {
-                                        Text(alerts.size.toString())
+            if (currentTab != null) {
+                NavigationBar(modifier = Modifier.navigationBarsPadding()) {
+                    AppTab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = currentRoute == tab.route,
+                            onClick = {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Box {
+                                    Icon(tab.icon, contentDescription = null)
+                                    if (tab == AppTab.Alerts && alerts.isNotEmpty()) {
+                                        Badge(modifier = Modifier.align(Alignment.TopEnd)) {
+                                            Text(alerts.size.toString())
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        label = { Text(tab.label) }
-                    )
+                            },
+                            label = { Text(tab.label) }
+                        )
+                    }
                 }
             }
         }
     ) { padding ->
-        AnimatedContent(
-            targetState = selectedTab,
-            label = "tab-content",
+        NavHost(
+            navController = navController,
+            startDestination = AppTab.Dashboard.route,
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-        ) { tab ->
-            when (tab) {
-                AppTab.Dashboard -> DashboardScreen(stats, alerts, emails)
-                AppTab.Triage -> TriageScreen(emails)
-                AppTab.Alerts -> AlertsScreen(alerts)
-                AppTab.SmartCards -> SmartCardsScreen()
+        ) {
+            composable(AppTab.Dashboard.route) {
+                if (dashboardState is UiState.Loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (dashboardState is UiState.Error) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text((dashboardState as UiState.Error).message) }
+                } else {
+                    DashboardScreen(stats, alerts, emails) { emailId -> navController.navigate("email_detail/$emailId") }
+                }
+            }
+            composable(AppTab.Triage.route) {
+                if (emailsState is UiState.Loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (emailsState is UiState.Error) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text((emailsState as UiState.Error).message) }
+                } else {
+                    TriageScreen(emails) { emailId -> navController.navigate("email_detail/$emailId") }
+                }
+            }
+            composable(AppTab.Alerts.route) {
+                if (alertsState is UiState.Loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (alertsState is UiState.Error) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text((alertsState as UiState.Error).message) }
+                } else {
+                    AlertsScreen(alerts, viewModel::dismissAlert)
+                }
+            }
+            composable(AppTab.SmartCards.route) {
+                if (smartCardsState is UiState.Loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (smartCardsState is UiState.Error) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text((smartCardsState as UiState.Error).message) }
+                } else {
+                    SmartCardsScreen(smartCards)
+                }
+            }
+            composable(AppTab.Settings.route) {
+                SettingsScreen(
+                    onNavigateToAccounts = { navController.navigate("accounts") },
+                    onNavigateToCalendar = { navController.navigate("calendar") }
+                )
+            }
+            composable("compose") {
+                ComposeScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = "email_detail/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id") ?: return@composable
+                EmailDetailScreen(emailId = id, onBack = { navController.popBackStack() })
+            }
+            composable("calendar") {
+                CalendarScreen()
+            }
+            composable("accounts") {
+                AccountsScreen()
             }
         }
     }
@@ -250,7 +329,7 @@ private fun AppTopBar(title: String, subtitle: String, unreadCount: Int) {
 }
 
 @Composable
-private fun DashboardScreen(stats: DashboardStats, alerts: List<AgentAlert>, emails: List<EmailUi>) {
+private fun DashboardScreen(stats: DashboardStats, alerts: List<AgentAlert>, emails: List<EmailUi>, onEmailClick: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 104.dp),
@@ -262,7 +341,7 @@ private fun DashboardScreen(stats: DashboardStats, alerts: List<AgentAlert>, ema
         items(alerts.take(2), key = { it.id }) { alert -> AlertCard(alert = alert, onDismiss = null) }
         item { SectionHeader("Move next", "Draft-ready conversations") }
         items(emails.filter { it.hasDraft || it.priority == Priority.Critical }.take(4), key = { it.id }) {
-            EmailCard(email = it, compact = true)
+            EmailCard(email = it, compact = true, onClick = { onEmailClick(it.id) })
         }
     }
 }
@@ -320,7 +399,7 @@ private fun MetricRail(stats: DashboardStats) {
         Metric("Total", stats.totalEmails.toString(), Icons.Filled.Inbox),
         Metric("Classified", stats.classified.toString(), Icons.Filled.CheckCircle),
         Metric("Starred", stats.starred.toString(), Icons.Filled.Star),
-        Metric("Critical", sampleEmails.count { it.priority == Priority.Critical }.toString(), Icons.Filled.PriorityHigh)
+        Metric("Critical", stats.criticalCount.toString(), Icons.Filled.PriorityHigh)
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(metrics) { metric ->
@@ -347,27 +426,27 @@ private fun MetricCard(metric: Metric) {
 }
 
 @Composable
-private fun TriageScreen(emails: List<EmailUi>) {
+private fun TriageScreen(emails: List<EmailUi>, onEmailClick: (String) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { SectionHeader("Smart queue", "Critical first, drafts close behind") }
         items(emails, key = { it.id }) { email ->
-            EmailCard(email = email, compact = false)
+            EmailCard(email = email, compact = false, onClick = { onEmailClick(email.id) })
         }
     }
 }
 
 @Composable
-private fun AlertsScreen(alerts: MutableList<AgentAlert>) {
+private fun AlertsScreen(alerts: List<AgentAlert>, onDismissAlert: (String) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { SectionHeader("Live notifications", "Deadlines, urgent mail, and AI insight") }
         items(alerts, key = { it.id }) { alert ->
-            AlertCard(alert = alert, onDismiss = { alerts.remove(alert) })
+            AlertCard(alert = alert, onDismiss = { onDismissAlert(alert.id) })
         }
         item {
             AnimatedVisibility(visible = alerts.isEmpty()) {
@@ -425,13 +504,13 @@ private fun AlertCard(alert: AgentAlert, onDismiss: (() -> Unit)?) {
 }
 
 @Composable
-private fun EmailCard(email: EmailUi, compact: Boolean) {
+private fun EmailCard(email: EmailUi, compact: Boolean, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -524,89 +603,4 @@ private fun severityColor(severity: AlertSeverity): Color = when (severity) {
     AlertSeverity.Info -> MaterialTheme.colorScheme.primary
 }
 
-private val sampleAlerts = listOf(
-    AgentAlert(
-        id = "a1",
-        title = "Contract deadline today",
-        message = "A vendor approval thread has a 5 PM deadline and no sent reply yet.",
-        severity = AlertSeverity.Critical,
-        time = "12 min ago"
-    ),
-    AgentAlert(
-        id = "a2",
-        title = "Meeting context ready",
-        message = "The AI matched three unread mails to your 3:30 PM roadmap sync.",
-        severity = AlertSeverity.Warning,
-        time = "28 min ago"
-    ),
-    AgentAlert(
-        id = "a3",
-        title = "Inbox pattern spotted",
-        message = "Most low-priority status updates can be summarized into one digest.",
-        severity = AlertSeverity.Info,
-        time = "1 hr ago"
-    )
-)
 
-private val sampleEmails = listOf(
-    EmailUi(
-        id = "e1",
-        sender = "Aarav Mehta",
-        subject = "Approval needed: CapGemini demo deck",
-        preview = "Can you confirm the final flow before we lock the client walkthrough?",
-        time = "Now",
-        priority = Priority.Critical,
-        category = "action-required",
-        isUnread = true,
-        isStarred = true,
-        hasDraft = true
-    ),
-    EmailUi(
-        id = "e2",
-        sender = "Nisha Rao",
-        subject = "Calendar shift for architecture review",
-        preview = "Moving the API review to 3:30 PM. The agenda includes auth and notification retries.",
-        time = "18m",
-        priority = Priority.High,
-        category = "meeting",
-        isUnread = true,
-        isStarred = false,
-        hasDraft = true
-    ),
-    EmailUi(
-        id = "e3",
-        sender = "Backend Agent",
-        subject = "New classification batch complete",
-        preview = "42 messages classified with 96 percent average confidence.",
-        time = "44m",
-        priority = Priority.Normal,
-        category = "ai-insight",
-        isUnread = false,
-        isStarred = false,
-        hasDraft = false
-    ),
-    EmailUi(
-        id = "e4",
-        sender = "Procurement Desk",
-        subject = "Invoice follow-up",
-        preview = "Please share the updated GST details so the reimbursement can be processed.",
-        time = "2h",
-        priority = Priority.High,
-        category = "deadline",
-        isUnread = true,
-        isStarred = true,
-        hasDraft = false
-    ),
-    EmailUi(
-        id = "e5",
-        sender = "Team Digest",
-        subject = "Daily build and test summary",
-        preview = "No failing critical jobs. Two flaky UI tests are being monitored.",
-        time = "4h",
-        priority = Priority.Low,
-        category = "info",
-        isUnread = false,
-        isStarred = false,
-        hasDraft = false
-    )
-)
