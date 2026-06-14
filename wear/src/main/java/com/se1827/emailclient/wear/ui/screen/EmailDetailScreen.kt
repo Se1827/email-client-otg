@@ -17,6 +17,7 @@ import com.se1827.emailclient.wear.data.model.EmailItem
 @Composable
 fun EmailDetailScreen(
     emailItem: EmailItem,
+    isProcessing: Boolean = false,
     onSend: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -32,13 +33,19 @@ fun EmailDetailScreen(
             }
         }
         item {
-            Button(onClick = onSend) {
-                Text("Send")
+            if (isProcessing) {
+                androidx.wear.compose.material.CircularProgressIndicator(modifier = Modifier.padding(vertical = 8.dp))
+            } else {
+                Button(onClick = onSend) {
+                    Text("Send")
+                }
             }
         }
         item {
-            Button(onClick = onSkip, modifier = Modifier.padding(bottom = 8.dp)) {
-                Text("Skip")
+            if (!isProcessing) {
+                Button(onClick = onSkip, modifier = Modifier.padding(bottom = 8.dp)) {
+                    Text("Skip")
+                }
             }
         }
     }

@@ -1,44 +1,101 @@
 package com.se1827.emailclient.wear.viewmodel
 
-import androidx.compose.runtime.mutableStateListOf
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.se1827.emailclient.wear.data.EmailRepository
 import com.se1827.emailclient.wear.data.model.EmailItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
-class EmailViewModel : ViewModel() {
-    val emails = mutableStateListOf(
-        EmailItem(
-            id = "1",
-            senderDisplayName = "Aarav Mehta",
-            draftPreview = "I can approve the final demo deck after one last review.",
-            fullDraftBody = "Hi Aarav,\n\nI can approve the final demo deck after one last review. Please send the current version and I will confirm the walkthrough flow before the client sync.\n\nRegards",
-            priority = "critical",
-            category = "action-required"
-        ),
-        EmailItem(
-            id = "2",
-            senderDisplayName = "Nisha Rao",
-            draftPreview = "Thanks for moving the architecture review. I will join at 3:30 PM.",
-            fullDraftBody = "Hi Nisha,\n\nThanks for the update. I will join the architecture review at 3:30 PM and come prepared to discuss auth and notification retries.\n\nRegards",
-            priority = "high",
-            category = "meeting"
-        ),
-        EmailItem(
-            id = "3",
-            senderDisplayName = "Team Digest",
-            draftPreview = "No action needed on the build summary right now.",
-            fullDraftBody = "Noted. No action needed on the build summary right now.",
-            priority = "low",
-            category = "info"
-        )
-    )
+sealed class UiState {
+    object Loading : UiState()
+    data class Success(val emails: List<EmailItem>) : UiState()
+    object Empty : UiState()
+    data class NetworkError(val message: String) : UiState()
+    data class BackendUnavailable(val message: String) : UiState()
+    data class AuthError(val message: String) : UiState()
+    data class UnknownError(val message: String) : UiState()
+}
 
-    fun getEmailById(id: String): EmailItem? = emails.firstOrNull { it.id == id }
+class EmailViewModel(
+    private val repository: EmailRepository = EmailRepository()
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _isProcessing = MutableStateFlow(false)
+    val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
+
+    fun fetchPendingDrafts() {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            try {
+                Log.d("EmailViewModel", "Fetching pending drafts from GET /api/emails")
+                val drafts = repository.getPendingDrafts()
+                if (drafts.isEmpty()) {
+                    _uiState.value = UiState.Empty
+                } else {
+                    _uiState.value = UiState.Success(drafts)
+                }
+            } catch (e: IOException) {
+                Log.e("EmailViewModel", "Network error fetching drafts: ${e.message}", e)
+                _uiState.value = UiState.NetworkError("Network error: Please check your connection.")
+            } catch (e: HttpException) {
+                Log.e("EmailViewModel", "HTTP error fetching drafts. Code: ${e.code()}", e)
+                _uiState.value = when (e.code()) {
+                    401, 403 -> UiState.AuthError("Authentication required.")
+                    in 500..599 -> UiState.BackendUnavailable("Backend is currently unavailable.")
+                    else -> UiState.UnknownError("An unexpected error occurred.")
+                }
+            } catch (e: Exception) {
+                Log.e("EmailViewModel", "Unknown error fetching drafts", e)
+                _uiState.value = UiState.UnknownError(e.message ?: "Unknown error")
+            }
+        }
+    }
 
     fun approveDraft(id: String) {
-        emails.removeAll { it.id == id }
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                Log.d("EmailViewModel", "Approving draft via POST /api/emails/$id/approve")
+                repository.approveDraft(id)
+                fetchPendingDrafts()
+            } catch (e: Exception) {
+                Log.e("EmailViewModel", "Error approving draft $id", e)
+                // Optionally show a toast or error message in UI
+            } finally {
+                _isProcessing.value = false
+            }
+        }
     }
 
     fun dismissLocally(id: String) {
-        emails.removeAll { it.id == id }
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                Log.d("EmailViewModel", "Skipping draft via POST /api/emails/$id/read")
+                repository.skipDraft(id)
+                fetchPendingDrafts()
+            } catch (e: Exception) {
+                Log.e("EmailViewModel", "Error skipping draft $id", e)
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    fun getEmailById(id: String): EmailItem? {
+        val currentState = _uiState.value
+        if (currentState is UiState.Success) {
+            return currentState.emails.firstOrNull { it.id == id }
+        }
+        return null
     }
 }
