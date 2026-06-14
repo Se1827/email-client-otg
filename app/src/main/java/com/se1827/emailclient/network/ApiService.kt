@@ -116,4 +116,25 @@ interface ApiService {
 
     @DELETE("api/storage/emails/{id}")
     suspend fun wipeEmailStorage(@Path("id") id: String): Map<String, Any>
+
+    // ─── Deadlines ────────────────────────────────────────────────────────────
+    @GET("api/deadlines")
+    suspend fun getDeadlines(@Query("days") days: Int = 7): DeadlineResponseDto
+
+    // ─── Actions ──────────────────────────────────────────────────────────────
+    @GET("api/actions")
+    suspend fun getActions(
+        @Query("status") status: String? = null,
+        @Query("email_id") emailId: String? = null
+    ): List<ActionItemDto>
+
+    @PATCH("api/actions/{id}")
+    suspend fun updateActionStatus(
+        @Path("id") id: String,
+        @Body request: UpdateActionStatusRequest
+    ): Map<String, Any>
+
+    // ─── App Settings ─────────────────────────────────────────────────────────
+    @GET("api/settings")
+    suspend fun getAppSettings(): AppSettingsDto
 }

@@ -111,7 +111,9 @@ data class DashboardStatsDto(
     @SerializedName("category_breakdown") val categoryBreakdown: Map<String, Int>,
     val accounts: List<AccountSummaryDto>,
     @SerializedName("upcoming_events") val upcomingEvents: List<CalendarEventDto>,
-    val notifications: List<NotificationDto>
+    val notifications: List<NotificationDto>,
+    @SerializedName("recent_activity") val recentActivity: List<Map<String, Any?>>? = null,
+    @SerializedName("storage_stats") val storageStats: StorageStatsDto? = null
 )
 
 data class GraphStatusDto(
@@ -223,6 +225,63 @@ data class ClassifyAllItemDto(
 )
 
 data class SyncResponse(val status: String, val message: String? = null)
+
+// ─── Deadline DTOs ────────────────────────────────────────────────────────────
+
+data class DeadlineItemDto(
+    val type: String,                                    // "action", "event", "email_deadline"
+    val id: String,
+    val title: String,
+    val due: String,                                     // ISO 8601
+    @SerializedName("is_overdue") val isOverdue: Boolean,
+    @SerializedName("hours_overdue") val hoursOverdue: Int,
+    val priority: String,                                // "critical", "high", "normal", "low"
+    @SerializedName("email_id") val emailId: String?,
+    val source: String,                                  // "action_item", "calendar", "email"
+    @SerializedName("is_all_day") val isAllDay: Boolean? = null,
+    val location: String? = null,
+    val sender: String? = null,
+    @SerializedName("deadline_terms") val deadlineTerms: List<String>? = null
+)
+
+data class DeadlineResponseDto(
+    val deadlines: List<DeadlineItemDto>,
+    val count: Int,
+    @SerializedName("window_days") val windowDays: Int,
+    @SerializedName("generated_at") val generatedAt: String
+)
+
+// ─── Action Item DTOs ─────────────────────────────────────────────────────────
+
+data class ActionItemDto(
+    val id: String,
+    val description: String,
+    @SerializedName("due_date") val dueDate: String?,
+    val status: String,                                  // "pending", "in_progress", "completed", "dismissed"
+    val priority: String,
+    @SerializedName("email_id") val emailId: String?,
+    @SerializedName("is_overdue") val isOverdue: Boolean,
+    @SerializedName("hours_overdue") val hoursOverdue: Int,
+    @SerializedName("source_subject") val sourceSubject: String?
+)
+
+data class UpdateActionStatusRequest(val status: String)
+
+// ─── App Settings DTO ─────────────────────────────────────────────────────────
+
+data class AppSettingsDto(
+    @SerializedName("groq_api_key") val groqApiKey: String,
+    @SerializedName("groq_api_key_set") val groqApiKeySet: Boolean,
+    @SerializedName("groq_model") val groqModel: String,
+    @SerializedName("email_source") val emailSource: String,
+    @SerializedName("pii_mode") val piiMode: String,
+    @SerializedName("default_draft_quality") val defaultDraftQuality: String,
+    @SerializedName("storage_enabled") val storageEnabled: Boolean,
+    @SerializedName("database_url") val databaseUrl: String? = null,
+    @SerializedName("otel_enabled") val otelEnabled: Boolean,
+    @SerializedName("otel_service_name") val otelServiceName: String,
+    @SerializedName("otel_exporter_otlp_endpoint") val otelExporterOtlpEndpoint: String
+)
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 

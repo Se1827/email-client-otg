@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.core.splashscreen)
 
@@ -74,6 +75,10 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+
+    implementation(libs.security.crypto)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.compose.material.icons.extended)
 
     debugImplementation(libs.ui.tooling)
 }

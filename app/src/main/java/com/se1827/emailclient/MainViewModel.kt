@@ -38,9 +38,14 @@ class MainViewModel(
                     unread = statsDto.unreadCount,
                     classified = statsDto.classifiedCount,
                     starred = statsDto.starredCount,
-                    pendingDrafts = statsDto.priorityBreakdown.values.sum(),
-                    responseReadiness = if (statsDto.totalEmails > 0) 
-                        (statsDto.classifiedCount.toFloat() / statsDto.totalEmails) 
+                    // pendingDrafts = drafts awaiting review, not total classified
+                    pendingDrafts = statsDto.notifications.count { n ->
+                        n.type == "ai_insight" && n.title.contains("draft", ignoreCase = true)
+                    }.takeIf { it > 0 }
+                        ?: (statsDto.priorityBreakdown["critical"] ?: 0) +
+                        (statsDto.priorityBreakdown["high"] ?: 0),
+                    responseReadiness = if (statsDto.totalEmails > 0)
+                        (statsDto.classifiedCount.toFloat() / statsDto.totalEmails)
                     else 0f,
                     criticalCount = statsDto.priorityBreakdown["critical"] ?: 0
                 )
@@ -91,9 +96,16 @@ class MainViewModel(
         _alerts.value = UiState.Loading
         viewModelScope.launch {
             repository.getNotifications().onSuccess { dtos ->
-                _alerts.value = UiState.Success(dtos.map { it.toUiModel() })
+                // Deduplicate by ID to prevent LazyColumn key-conflict crashes
+                _alerts.value = UiState.Success(
+                    dtos.distinctBy { it.id }.map { it.toUiModel() }
+                )
             }.onFailure {
-                _alerts.value = UiState.Error(it.message ?: "Unknown error fetching alerts")
+                // Only show error if we have no prior data — otherwise keep stale data
+                val existing = (_alerts.value as? UiState.Success)?.data
+                if (existing == null) {
+                    _alerts.value = UiState.Error(it.message ?: "Unknown error fetching alerts")
+                }
             }
         }
     }
@@ -108,9 +120,11 @@ class MainViewModel(
     }
 
     fun dismissAlert(id: String) {
+        // Optimistically remove from UI first, then fire API call
+        val currentList = (_alerts.value as? UiState.Success)?.data ?: return
+        val updated = currentList.filter { it.id != id }
+        _alerts.value = UiState.Success(updated)
         viewModelScope.launch {
-            val currentList = (_alerts.value as? UiState.Success)?.data ?: return@launch
-            _alerts.value = UiState.Success(currentList.filter { it.id != id })
             repository.dismissNotification(id)
         }
     }
