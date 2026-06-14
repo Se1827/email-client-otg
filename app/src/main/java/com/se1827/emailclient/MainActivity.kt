@@ -89,10 +89,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.se1827.emailclient.auth.AuthViewModel
+import com.se1827.emailclient.network.NetworkClient
 import com.se1827.emailclient.ui.EmailDetailScreen
 import com.se1827.emailclient.ui.ComposeScreen
 import com.se1827.emailclient.ui.CalendarScreen
 import com.se1827.emailclient.ui.AccountsScreen
+import com.se1827.emailclient.ui.LoginScreen
 import com.se1827.emailclient.ui.SettingsScreen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -107,9 +110,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // Initialise the network layer so the auth interceptor can read the token
+        NetworkClient.init(applicationContext)
+
         setContent {
             EmailClientTheme {
-                EmailAgentApp()
+                val authViewModel: AuthViewModel = viewModel()
+                val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
+                val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+
+                if (isLoggedIn) {
+                    EmailAgentApp(onLogout = { authViewModel.logout() })
+                } else {
+                    LoginScreen(
+                        authState = authUiState,
+                        onLogin = { password -> authViewModel.login(password) }
+                    )
+                }
             }
         }
     }
@@ -158,7 +175,7 @@ data class EmailUi(
 )
 
 @Composable
-private fun EmailAgentApp(viewModel: MainViewModel = viewModel()) {
+private fun EmailAgentApp(viewModel: MainViewModel = viewModel(), onLogout: () -> Unit = {}) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: AppTab.Dashboard.route
@@ -274,7 +291,8 @@ private fun EmailAgentApp(viewModel: MainViewModel = viewModel()) {
             composable(AppTab.Settings.route) {
                 SettingsScreen(
                     onNavigateToAccounts = { navController.navigate("accounts") },
-                    onNavigateToCalendar = { navController.navigate("calendar") }
+                    onNavigateToCalendar = { navController.navigate("calendar") },
+                    onLogout = onLogout
                 )
             }
             composable("compose") {

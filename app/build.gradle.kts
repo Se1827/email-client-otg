@@ -89,6 +89,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
 
     implementation(libs.core.splashscreen)
+    implementation(libs.security.crypto)
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear.tooling.preview)
     androidTestImplementation(platform(libs.compose.bom))

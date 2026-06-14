@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import com.se1827.emailclient.SettingsViewModel
 fun SettingsScreen(
     onNavigateToAccounts: () -> Unit = {},
     onNavigateToCalendar: () -> Unit = {},
+    onLogout: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -131,6 +133,29 @@ fun SettingsScreen(
                                     MetricChip("Events", state.storageStats?.events?.toString() ?: "0")
                                     MetricChip("Accounts", state.storageStats?.accounts?.toString() ?: "0")
                                     MetricChip("Notifs", state.storageStats?.notifications?.toString() ?: "0")
+                                }
+                            }
+                        }
+                    }
+
+                    // Sign Out
+                    item {
+                        Text("Session", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                                Text("Sign out of your current session. You will need to re-enter your password.", style = MaterialTheme.typography.bodySmall)
+                                Spacer(Modifier.height(12.dp))
+                                OutlinedButton(
+                                    onClick = onLogout,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Sign Out")
                                 }
                             }
                         }

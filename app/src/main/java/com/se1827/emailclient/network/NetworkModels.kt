@@ -223,3 +223,13 @@ data class ClassifyAllItemDto(
 )
 
 data class SyncResponse(val status: String, val message: String? = null)
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+data class LoginRequest(val password: String)
+
+data class LoginResponse(
+    val status: String,
+    val token: String,
+    @SerializedName("display_name") val displayName: String
+)

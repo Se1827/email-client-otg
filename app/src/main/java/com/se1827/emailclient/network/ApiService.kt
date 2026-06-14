@@ -4,6 +4,10 @@ import retrofit2.http.*
 
 interface ApiService {
 
+    // ─── Auth ─────────────────────────────────────────────────────────────────
+    @POST("api/auth/login")
+    suspend fun login(@Body request: LoginRequest): LoginResponse
+
     // ─── Emails ───────────────────────────────────────────────────────────────
     @GET("api/emails")
     suspend fun getEmails(@Query("account_id") accountId: String? = null): List<EmailDto>
