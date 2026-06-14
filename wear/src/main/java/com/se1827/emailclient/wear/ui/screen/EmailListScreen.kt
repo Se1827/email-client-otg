@@ -52,38 +52,82 @@ fun EmailListScreen(
                 CircularProgressIndicator()
             }
         }
-        is UiState.Empty -> {
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No pending drafts.",
-                    style = MaterialTheme.typography.body1,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
         is UiState.NetworkError -> ErrorScreen(message = state.message, onRetry = { viewModel.fetchPendingDrafts() })
         is UiState.AuthError -> ErrorScreen(message = state.message, onRetry = { viewModel.fetchPendingDrafts() })
         is UiState.BackendUnavailable -> ErrorScreen(message = state.message, onRetry = { viewModel.fetchPendingDrafts() })
         is UiState.UnknownError -> ErrorScreen(message = state.message, onRetry = { viewModel.fetchPendingDrafts() })
         is UiState.Success -> {
+            val emails = state.emails
+            val totalPending = emails.size
+            val criticalCount = emails.count { it.priority.equals("critical", ignoreCase = true) }
+            val highCount = emails.count { it.priority.equals("high", ignoreCase = true) }
+            val normalCount = emails.count { it.priority.equals("normal", ignoreCase = true) }
+            val lowCount = emails.count { it.priority.equals("low", ignoreCase = true) }
+
+            val timeAgo = android.text.format.DateUtils.getRelativeTimeSpanString(
+                state.lastUpdated,
+                System.currentTimeMillis(),
+                android.text.format.DateUtils.MINUTE_IN_MILLIS
+            ).toString()
+
             ScalingLazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 item {
-                    Text(
-                        text = "AI drafts",
-                        style = MaterialTheme.typography.title1,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "Pending Reviews", style = MaterialTheme.typography.caption1, color = androidx.compose.ui.graphics.Color.Gray)
+                        Text(text = totalPending.toString(), style = MaterialTheme.typography.display1)
+                    }
                 }
-                items(state.emails, key = { it.id }) { email ->
-                    Chip(
-                        onClick = { onEmailClick(email.id) },
-                        label = { Text(email.senderDisplayName) },
-                        secondaryLabel = { Text("${email.priority} • ${email.category}") }
-                    )
+
+                if (totalPending == 0) {
+                    item {
+                        Text(
+                            text = "Yay! All Caught Up.",
+                            style = MaterialTheme.typography.body1,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
+                } else {
+                    item {
+                        androidx.compose.foundation.layout.Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text(text = "Priority Breakdown", style = MaterialTheme.typography.caption1, color = androidx.compose.ui.graphics.Color.Gray, modifier = Modifier.padding(bottom = 4.dp))
+                            if (criticalCount > 0) Text("🔴 Critical: $criticalCount", color = androidx.compose.ui.graphics.Color.Red, style = MaterialTheme.typography.body2)
+                            if (highCount > 0) Text("🟠 High: $highCount", color = androidx.compose.ui.graphics.Color(0xFFFFA500), style = MaterialTheme.typography.body2)
+                            if (normalCount > 0) Text("🔵 Normal: $normalCount", color = androidx.compose.ui.graphics.Color.Blue, style = MaterialTheme.typography.body2)
+                            if (lowCount > 0) Text("🟢 Low: $lowCount", color = androidx.compose.ui.graphics.Color.Green, style = MaterialTheme.typography.body2)
+                        }
+                    }
+                }
+
+                item {
+                    androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "Last Updated", style = MaterialTheme.typography.caption1, color = androidx.compose.ui.graphics.Color.Gray)
+                        Text(text = if (System.currentTimeMillis() - state.lastUpdated < 60000) "Just now" else timeAgo, style = MaterialTheme.typography.body2)
+                    }
+                }
+
+                if (totalPending > 0) {
+                    item {
+                        Text(
+                            text = "Review Queue",
+                            style = MaterialTheme.typography.title2,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(emails, key = { it.id }) { email ->
+                        Chip(
+                            onClick = { onEmailClick(email.id) },
+                            label = { Text(email.senderDisplayName) },
+                            secondaryLabel = { Text("${email.priority} • ${email.category}") }
+                        )
+                    }
                 }
             }
         }

@@ -1,10 +1,13 @@
 package com.se1827.emailclient.wear.viewmodel
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.se1827.emailclient.wear.data.EmailRepository
 import com.se1827.emailclient.wear.data.model.EmailItem
+import com.se1827.emailclient.wear.network.NotificationTracker
+import com.se1827.emailclient.wear.ui.notification.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +17,10 @@ import java.io.IOException
 
 sealed class UiState {
     object Loading : UiState()
-    data class Success(val emails: List<EmailItem>) : UiState()
-    object Empty : UiState()
+    data class Success(
+        val emails: List<EmailItem>,
+        val lastUpdated: Long
+    ) : UiState()
     data class NetworkError(val message: String) : UiState()
     data class BackendUnavailable(val message: String) : UiState()
     data class AuthError(val message: String) : UiState()
@@ -23,8 +28,12 @@ sealed class UiState {
 }
 
 class EmailViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+
     private val repository: EmailRepository = EmailRepository()
-) : ViewModel() {
+    private val notificationTracker = NotificationTracker(application)
+    private val notificationHelper = NotificationHelper(application)
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -38,11 +47,19 @@ class EmailViewModel(
             try {
                 Log.d("EmailViewModel", "Fetching pending drafts from GET /api/emails")
                 val drafts = repository.getPendingDrafts()
-                if (drafts.isEmpty()) {
-                    _uiState.value = UiState.Empty
-                } else {
-                    _uiState.value = UiState.Success(drafts)
+                
+                // Handle Notification Deduplication
+                val draftIds = drafts.map { it.id }.toSet()
+                notificationTracker.syncNotifiedIds(draftIds)
+                
+                drafts.forEach { draft ->
+                    if (!notificationTracker.isNotified(draft.id)) {
+                        notificationHelper.showDraftNotification(draft.id, draft.senderDisplayName, draft.priority)
+                        notificationTracker.markAsNotified(draft.id)
+                    }
                 }
+
+                _uiState.value = UiState.Success(emails = drafts, lastUpdated = System.currentTimeMillis())
             } catch (e: IOException) {
                 Log.e("EmailViewModel", "Network error fetching drafts: ${e.message}", e)
                 _uiState.value = UiState.NetworkError("Network error: Please check your connection.")

@@ -75,5 +75,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     debugImplementation(libs.ui.tooling)
 }
