@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
@@ -51,9 +53,11 @@ private fun WearNavHost(viewModel: EmailViewModel) {
         composable(ROUTE_DETAIL) { backStackEntry ->
             val emailId = backStackEntry.arguments?.getString(ARG_EMAIL_ID) ?: return@composable
             val emailItem = viewModel.getEmailById(emailId) ?: return@composable
+            val isProcessing by viewModel.isProcessing.collectAsState()
 
             EmailDetailScreen(
                 emailItem = emailItem,
+                isProcessing = isProcessing,
                 onSend = {
                     viewModel.approveDraft(emailId)
                     navController.popBackStack()
